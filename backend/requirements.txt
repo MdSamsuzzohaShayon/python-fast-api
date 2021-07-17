@@ -1,0 +1,7 @@
+fastapi == 0.66.0
+
+uvicorn == 0.14.0
+
+motor == 2.4.0
+
+dnspython == 2.1.0
