@@ -6,13 +6,16 @@ from model import Todo
 app = FastAPI()
 
 
-origins =[ 'https://localhost:3000']
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 
@@ -47,10 +50,13 @@ async def put_todo(title:str, desc:str):
         return response
     raise HTTPException(404, f"there is no todo items{title}")
 
-@app.delete('/api/todo{title}')
+@app.delete('/api/todo/{title}')
 async def delete_todo(title):
+    print("Title - ",title)
     response = await remove_todo(title)
     if response:
         return "Successfully deleted"
     raise HTTPException(404, f"there is no todo items{title}")
+
+
 
