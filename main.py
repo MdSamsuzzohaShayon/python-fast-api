@@ -1,85 +1,77 @@
-from fastapi import FastAPI, Path
-from typing import Optional
-from pydantic import BaseModel
+from fastapi import FastAPI, Body, Depends
+import uvicorn
+from app.model import PostSchema, UserSchema, UserLoginSchema
+from app.auth.jwt_handler import  signJWT
+from app.auth.jwt_bearer import JwtBearer
+
+posts = [
+    {
+        "id": 1,
+        "title": "title 1",
+        "text": "text 1"
+    },
+{
+        "id": 2,
+        "title": "title 2",
+        "text": "text 2"
+    },
+{
+        "id": 3,
+        "title": "title 3",
+        "text": "text 3"
+    },
+]
+
+users = []
 
 app = FastAPI()
 
+# testing
+@app.get('/', tags=["test"])
+def test():
+    return {"Hello", "World"}
 
-students = {
-    1: {
-        "name": "Jhon",
-        "age": 17,
-        "year": "12",
-    }
-}
+# get posts
+@app.get("/posts", tags=["Posts"])
+def get_posts():
+    return {"data": posts}
 
-class Student(BaseModel):
-    name: str
-    age: int
-    year: str
+# Get single post
+@app.get("/posts/{id}", tags=["posts"])
+def get_one_post(id: int):
+    if id > len(posts):
+        return {'Error': "Post with this ID does not exist"}
 
-class UpdateStudent(BaseModel):
-    name: Optional[str] = None
-    age: Optional[int] = None
-    year: Optional[str] = None
-
-@app.get("/")
-def index():
-    return {"Hello": "World"}
-
-# using path parameters
-@app.get('/get-student/{student_id}')
-def get_student(student_id: int = Path(None, description="The ID of the student", gt=0)):
-    return students[student_id]
+    for post in posts:
+        if post["id"] == id:
+            return {"Data": post }
 
 
-# Query parameters
-@app.get('/get-by-name')
-def getByName(*, name: Optional[str], not_essential= None):
-    print(not_essential)
-    for student_id in students:
-        if students[student_id]["name"] == name:
-            return students[student_id]
-        return {"data": "not found"}
+# Create a single post
+@app.post("/posts", dependencies=[Depends(JwtBearer())], tags=["posts"])
+def add_post(post: PostSchema):
+    post.id = len(posts) + 1
+    posts.append(post.dict())
+    return {"msg": "Post is been added"}
 
 
-# Combining both parameters
-@app.get('/combine-parameters/{student_id}')
-def getByName(*, student_id: int, name: Optional[str], not_essential= None):
-    print(not_essential)
-    for student_id in students:
-        if students[student_id]["name"] == name:
-            return students[student_id]
-        return {"data": "not found"}
+#user signup - create a new user
+@app.post("/user/signup", tags=["user"])
+def user_signup(user: UserSchema = Body(default= None)):
+    users.append(user)
+    return signJWT(user.email)
+
+def check_user(data: UserLoginSchema):
+    for user in users:
+        if user.email == data.email and user.password == data.password:
+            return True
+        return False
 
 
+@app.post('/user/login', tags=["user"])
+def user_login(user: UserLoginSchema = Body(default=None)):
+    if check_user(user):
+        return signJWT(user.email)
+    else:
+        return {"Error": "Invalid login details"}
 
-@app.post("/create-student/{student_id}")
-def create_student(student_id: int, student: UpdateStudent):
-    if student_id in students:
-        return {"Error": "Student exists"}
-
-    students[student_id] = student
-    return students[student_id]
-
-
-@app.put("/update-student/{student_id}")
-def update_student(student_id: int, student: UpdateStudent):
-    if student_id not in students:
-        return {"Error": "student does not exiist"}
-
-    if student.name != None:
-        students[student_id].name = student.name
-    if student.age != None:
-        students[student_id].age = student.age
-    if student.name != None:
-        students[student_id].year = student.year
-
-    return students[student_id]
-
-@app.delete("/delete-student/{student_id}")
-def delete_student(student_id: int):
-    if student_id not in students:
-        return {"Error": "Student does not exist"}
-    del students[student_id]
-    return {"Message": "Student deleted successfully"}
