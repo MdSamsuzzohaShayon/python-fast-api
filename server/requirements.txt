@@ -1,0 +1,9 @@
+fastapi
+fastapi-users[sqlalchemy]
+uvicorn[standard]
+aiosqlite
+Jinja2==3.1.2
+fastapi
+fastapi-users[sqlalchemy]
+uvicorn[standard]
+aiosqlite
